@@ -31,7 +31,7 @@ int main()
   antlr4::CommonTokenStream tokens(&lexer);
 
   DaoParser parser(&tokens);
-  auto tree = parser.expression();
+  auto tree = parser.file_input();
 
   DaoVisitor visitor;
   visitor.visit(tree);

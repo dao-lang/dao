@@ -1,9 +1,30 @@
 #pragma once
 
+#include <llvm/IR/Module.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+
 #include "DaoParserBaseVisitor.h"
 
 class DaoVisitor : public DaoParserBaseVisitor
 {
+private:
+    llvm::LLVMContext context;
+    llvm::IRBuilder<> builder;
+    llvm::Module module;
+
+    llvm::Function *main_func;
+    llvm::BasicBlock *block;
+
+    std::map<std::string, llvm::FunctionCallee> func_list;
+
+public:
+    DaoVisitor();
+
+    virtual antlrcpp::Any visitFile_input(DaoParser::File_inputContext *context) override;
+
+    virtual antlrcpp::Any visitStatement(DaoParser::StatementContext *context) override;
+
     virtual antlrcpp::Any visitExpression(DaoParser::ExpressionContext *context) override;
 
     virtual antlrcpp::Any visitAssignmentExpression(DaoParser::AssignmentExpressionContext *context) override;

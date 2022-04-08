@@ -2,6 +2,14 @@ parser grammar DaoParser;
 
 options { tokenVocab=DaoLexer; language=Cpp; }
 
+file_input
+    : statement*
+    ;
+
+statement
+    : expression (Newline|EOF)
+    ;
+
 expression
     : assignmentExpression (',' assignmentExpression)*
     ;
