@@ -25,7 +25,7 @@ void print_tokens(const std::string source_file)
 int main()
 {
   antlr4::ANTLRFileStream fileStream;
-  fileStream.loadFromFile("demo/demo01.dao");
+  fileStream.loadFromFile("demo/demo02.dao");
 
   DaoLexer lexer(&fileStream);
   antlr4::CommonTokenStream tokens(&lexer);

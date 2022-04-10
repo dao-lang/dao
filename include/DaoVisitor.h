@@ -74,4 +74,15 @@ public:
     virtual antlrcpp::Any visitTypeName(DaoParser::TypeNameContext *context) override;
 
     virtual antlrcpp::Any visitFuncName(DaoParser::FuncNameContext *context) override;
+
+private:
+    llvm::Value *add(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *sub(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *mul(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *div(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *mod(llvm::Value *left, llvm::Value *right);
 };

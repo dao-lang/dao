@@ -60,11 +60,13 @@ shiftExpression
     ;
 
 additiveExpression
-    :   multiplicativeExpression (('+'|'-') multiplicativeExpression)*
+    :   multiplicativeExpression
+    |   additiveExpression op=('+'|'-') multiplicativeExpression
     ;
 
 multiplicativeExpression
-    :   castExpression (('*'|'/'|'%') castExpression)*
+    :   castExpression
+    |   multiplicativeExpression op=('*'|'/'|'%') castExpression
     ;
 
 castExpression
