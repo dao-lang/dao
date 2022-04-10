@@ -43,9 +43,9 @@ public:
 
     virtual antlrcpp::Any visitAndExprression(DaoParser::AndExprressionContext *context) override;
 
-    virtual antlrcpp::Any visitEqualityExprression(DaoParser::EqualityExprressionContext *context) override;
-
     virtual antlrcpp::Any visitRelationalExprression(DaoParser::RelationalExprressionContext *context) override;
+
+    virtual antlrcpp::Any visitRelationalOperator(DaoParser::RelationalOperatorContext *context) override;
 
     virtual antlrcpp::Any visitShiftExpression(DaoParser::ShiftExpressionContext *context) override;
 
@@ -85,4 +85,20 @@ private:
     llvm::Value *div(llvm::Value *left, llvm::Value *right);
 
     llvm::Value *mod(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *leftShift(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *rightShift(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *equal(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *notEqual(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *less(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *lessEqual(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *greater(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *greaterEqual(llvm::Value *left, llvm::Value *right);
 };

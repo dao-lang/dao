@@ -3,11 +3,11 @@ parser grammar DaoParser;
 options { tokenVocab=DaoLexer; language=Cpp; }
 
 file_input
-    : statement*
+    : statement* EOF
     ;
 
 statement
-    : expression (Newline|EOF)
+    : expression? Newline
     ;
 
 expression
@@ -28,15 +28,18 @@ conditionalExpression
     ;
 
 logicalOrExpression
-    : logicalAndExprression ( '||' logicalAndExprression)*
+    : logicalAndExprression
+    | logicalOrExpression '||' logicalAndExprression
     ;
 
 logicalAndExprression
-    : inclusiveOrExprression ('&&' inclusiveOrExprression)*
+    : inclusiveOrExprression
+    | logicalAndExprression '&&' inclusiveOrExprression
     ;
 
 inclusiveOrExprression
-    : exclusiveOrExprression ('|' exclusiveOrExprression)*
+    : exclusiveOrExprression
+    | inclusiveOrExprression '|' exclusiveOrExprression
     ;
 
 exclusiveOrExprression
@@ -44,34 +47,36 @@ exclusiveOrExprression
     ;
 
 andExprression
-    : equalityExprression ( '&' equalityExprression)*
-    ;
-
-equalityExprression
-    :   relationalExprression (('=='| '!=') relationalExprression)*
+    : relationalExprression
+    | andExprression '&' relationalExprression
     ;
 
 relationalExprression
-    :   shiftExpression (('<'|'>'|'<='|'>=') shiftExpression)*
+    : shiftExpression (relationalOperator shiftExpression)*
+    ;
+
+relationalOperator
+    : '==' | '!=' | '<' | '>' | '<=' | '>='
     ;
 
 shiftExpression
-    :   additiveExpression (('<<'|'>>') additiveExpression)*
+    : additiveExpression
+    | shiftExpression op=('<<'|'>>') additiveExpression
     ;
 
 additiveExpression
-    :   multiplicativeExpression
-    |   additiveExpression op=('+'|'-') multiplicativeExpression
+    : multiplicativeExpression
+    | additiveExpression op=('+'|'-') multiplicativeExpression
     ;
 
 multiplicativeExpression
-    :   castExpression
-    |   multiplicativeExpression op=('*'|'/'|'%') castExpression
+    : castExpression
+    | multiplicativeExpression op=('*'|'/'|'%') castExpression
     ;
 
 castExpression
-    :   '(' typeName ')' castExpression
-    |   unaryExpression
+    : '(' typeName ')' castExpression
+    | unaryExpression
     ;
 
 unaryExpression
@@ -79,7 +84,7 @@ unaryExpression
     ;
 
 unaryOperator
-    :   '&' | '*' | '+' | '-' | '~' | '!'
+    : '&' | '*' | '+' | '-' | '~' | '!'
     ;
 
 postfixExpression

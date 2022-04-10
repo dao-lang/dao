@@ -56,7 +56,10 @@ antlrcpp::Any DaoVisitor::visitFile_input(DaoParser::File_inputContext *context)
 
 antlrcpp::Any DaoVisitor::visitStatement(DaoParser::StatementContext *context)
 {
-    return DaoParserBaseVisitor::visitStatement(context);
+    if (context->expression())
+        return visit(context->expression());
+
+    return nullptr;
 }
 
 antlrcpp::Any DaoVisitor::visitExpression(DaoParser::ExpressionContext *context)
@@ -104,19 +107,77 @@ antlrcpp::Any DaoVisitor::visitAndExprression(DaoParser::AndExprressionContext *
     return DaoParserBaseVisitor::visitAndExprression(context);
 }
 
-antlrcpp::Any DaoVisitor::visitEqualityExprression(DaoParser::EqualityExprressionContext *context)
-{
-    return DaoParserBaseVisitor::visitEqualityExprression(context);
-}
-
 antlrcpp::Any DaoVisitor::visitRelationalExprression(DaoParser::RelationalExprressionContext *context)
 {
-    return DaoParserBaseVisitor::visitRelationalExprression(context);
+    auto ops = context->relationalOperator();
+    auto args = context->shiftExpression();
+
+    Value *left = visit(args[0]).as<Value *>();
+
+    Value *result = nullptr;
+    for (size_t i = 1; i < args.size(); i++)
+    {
+        auto op = visit(ops[i - 1]).as<int>();
+        Value *right = visit(args[i]).as<Value *>();
+
+        std::cout << "op:" << op << std::endl;
+
+        Value *tmp = nullptr;
+        if (op == DaoLexer::Equal)
+            tmp = equal(left, right);
+        else if (op == DaoLexer::NotEqual)
+            tmp = notEqual(left, right);
+        else if (op == DaoLexer::Less)
+            tmp = less(left, right);
+        else if (op == DaoLexer::LessEqual)
+            tmp = lessEqual(left, right);
+        else if (op == DaoLexer::Greater)
+            tmp = greater(left, right);
+        else if (op == DaoLexer::GreaterEqual)
+            tmp = greaterEqual(left, right);
+        else
+            throw "语法错误！";
+
+        result = result == nullptr ? tmp : builder.CreateAnd(result, tmp);
+        left = right;
+    }
+
+    return result == nullptr ? left : result;
+}
+
+antlrcpp::Any DaoVisitor::visitRelationalOperator(DaoParser::RelationalOperatorContext *context)
+{
+    if (context->Equal())
+        return (int)DaoLexer::Equal;
+    else if (context->NotEqual())
+        return (int)DaoLexer::NotEqual;
+    else if (context->Less())
+        return (int)DaoLexer::Less;
+    else if (context->LessEqual())
+        return (int)DaoLexer::LessEqual;
+    else if (context->Greater())
+        return (int)DaoLexer::Greater;
+    else if (context->GreaterEqual())
+        return (int)DaoLexer::GreaterEqual;
+    else
+        throw "语法错误！";
 }
 
 antlrcpp::Any DaoVisitor::visitShiftExpression(DaoParser::ShiftExpressionContext *context)
 {
-    return DaoParserBaseVisitor::visitShiftExpression(context);
+    if (!context->shiftExpression())
+        return visit(context->additiveExpression());
+
+    Value *left = visit(context->shiftExpression()).as<Value *>();
+    Value *right = visit(context->additiveExpression()).as<Value *>();
+    auto op = context->op->getType();
+
+    if (op == DaoLexer::LeftShift)
+        return leftShift(left, right);
+    else if (op == DaoLexer::RightShift)
+        return rightShift(left, right);
+    else
+        throw "语法错误！";
 }
 
 antlrcpp::Any DaoVisitor::visitAdditiveExpression(DaoParser::AdditiveExpressionContext *context)
@@ -400,6 +461,194 @@ llvm::Value *DaoVisitor::mod(llvm::Value *left, llvm::Value *right)
     else if (left_type->isFloatTy() && right_type->isFloatTy())
     {
         return builder.CreateFRem(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::leftShift(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateShl(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::rightShift(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateLShr(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::equal(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpEQ(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpOEQ(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpOEQ(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpOEQ(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::notEqual(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpNE(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpONE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpONE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpONE(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::less(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpSLT(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpOLT(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpOLT(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpOLT(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::lessEqual(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpSLE(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpOLE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpOLE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpOLE(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::greater(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpSGT(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpOGT(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpOGT(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpOGT(left, right);
+    }
+    else
+        throw "语法错误！";
+}
+
+llvm::Value *DaoVisitor::greaterEqual(llvm::Value *left, llvm::Value *right)
+{
+    auto left_type = left->getType();
+    auto right_type = right->getType();
+
+    if (left_type->isIntegerTy() && right_type->isIntegerTy())
+    {
+        return builder.CreateICmpSGE(left, right);
+    }
+    else if (left_type->isIntegerTy() && right_type->isFloatTy())
+    {
+        left = builder.CreateSIToFP(left, right_type);
+        return builder.CreateFCmpOGE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isIntegerTy())
+    {
+        right = builder.CreateSIToFP(right, left_type);
+        return builder.CreateFCmpOGE(left, right);
+    }
+    else if (left_type->isFloatTy() && right_type->isFloatTy())
+    {
+        return builder.CreateFCmpOGE(left, right);
     }
     else
         throw "语法错误！";
