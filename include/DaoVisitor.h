@@ -17,6 +17,7 @@ private:
     llvm::BasicBlock *block;
 
     std::map<std::string, llvm::FunctionCallee> func_list;
+    std::map<std::string, llvm::AllocaInst *> var_list;
 
 public:
     DaoVisitor();
@@ -24,6 +25,10 @@ public:
     virtual antlrcpp::Any visitFile_input(DaoParser::File_inputContext *context) override;
 
     virtual antlrcpp::Any visitStatement(DaoParser::StatementContext *context) override;
+
+    virtual antlrcpp::Any visitVarDeclaration(DaoParser::VarDeclarationContext *context) override;
+
+    virtual antlrcpp::Any visitVarDeclarationSpecifier(DaoParser::VarDeclarationSpecifierContext *context) override;
 
     virtual antlrcpp::Any visitExpression(DaoParser::ExpressionContext *context) override;
 

@@ -58,8 +58,42 @@ antlrcpp::Any DaoVisitor::visitStatement(DaoParser::StatementContext *context)
 {
     if (context->expression())
         return visit(context->expression());
+    else if (context->varDeclaration())
+        return visit(context->varDeclaration());
 
-    return nullptr;
+    return 0;
+}
+
+antlrcpp::Any DaoVisitor::visitVarDeclaration(DaoParser::VarDeclarationContext *context)
+{
+    return visit(context->varDeclarationSpecifier());
+}
+
+antlrcpp::Any DaoVisitor::visitVarDeclarationSpecifier(DaoParser::VarDeclarationSpecifierContext *context)
+{
+    std::cout << "11111" << std::endl;
+
+    Type *type = nullptr;
+    if (context->typeName())
+        type = visit(context->typeName()).as<Type *>();
+    else
+        type = visit(context->varDeclarationSpecifier()).as<Type *>();
+
+    std::cout << "111112" << std::endl;
+
+    std::string name = visit(context->identifier()).as<std::string>();
+    AllocaInst *var = builder.CreateAlloca(type, nullptr, name);
+    std::cout << "111113" << std::endl;
+
+    if (context->assignmentExpression())
+    {
+        Value *value = visit(context->assignmentExpression()).as<Value *>();
+        builder.CreateStore(value, var);
+    }
+    std::cout << "111114" << std::endl;
+
+    var_list[name] = var;
+    return type;
 }
 
 antlrcpp::Any DaoVisitor::visitExpression(DaoParser::ExpressionContext *context)
@@ -252,9 +286,19 @@ antlrcpp::Any DaoVisitor::visitPrimaryExpression(DaoParser::PrimaryExpressionCon
 {
     if (context->identifier())
     {
-        auto text = visit(context->identifier());
-        FunctionCallee func = func_list[text.as<std::string>()];
-        return func;
+        std::string text = visit(context->identifier()).as<std::string>();
+        if (var_list.find(text) != var_list.end())
+        {
+            auto var = var_list[text];
+            return (Value *)builder.CreateLoad(var->getType(), var);
+        }
+        else if (func_list.find(text) != func_list.end())
+        {
+            FunctionCallee func = func_list[text];
+            return func;
+        }
+        else
+            throw "未知的标识符";
     }
     else if (context->StringLiteral())
     {
@@ -323,7 +367,28 @@ antlrcpp::Any DaoVisitor::visitDotName(DaoParser::DotNameContext *context)
 
 antlrcpp::Any DaoVisitor::visitTypeName(DaoParser::TypeNameContext *context)
 {
-    return DaoParserBaseVisitor::visitTypeName(context);
+    if (context->Byte())
+        return (Type *)builder.getInt8Ty();
+    else if (context->Int16())
+        return (Type *)builder.getInt16Ty();
+    else if (context->Int32())
+        return (Type *)builder.getInt32Ty();
+    else if (context->Int64())
+        return (Type *)builder.getInt64Ty();
+    else if (context->UInt16())
+        return (Type *)builder.getInt16Ty();
+    else if (context->UInt32())
+        return (Type *)builder.getInt32Ty();
+    else if (context->UInt64())
+        return (Type *)builder.getInt64Ty();
+    else if (context->Half())
+        return (Type *)builder.getHalfTy();
+    else if (context->Float())
+        return (Type *)builder.getFloatTy();
+    else if (context->Double())
+        return (Type *)builder.getDoubleTy();
+    else
+        throw "不支持的类型";
 }
 
 antlrcpp::Any DaoVisitor::visitFuncName(DaoParser::FuncNameContext *context)

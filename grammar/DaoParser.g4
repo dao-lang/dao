@@ -8,6 +8,16 @@ file_input
 
 statement
     : expression? Newline
+    | varDeclaration
+    ;
+
+varDeclaration
+    : varDeclarationSpecifier Newline
+    ;
+
+varDeclarationSpecifier
+    : typeName identifier ('=' assignmentExpression)?
+    | varDeclarationSpecifier ',' identifier ('=' assignmentExpression)?
     ;
 
 expression

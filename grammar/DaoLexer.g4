@@ -33,6 +33,7 @@ Float:                           '小数';
 Double:                          '长小数';
 Bool:                            '逻辑';
 Text:                            '文本';
+Char:                            '字符';
                     
 True:                            '真';
 False:                           '假';
