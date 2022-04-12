@@ -71,26 +71,22 @@ antlrcpp::Any DaoVisitor::visitVarDeclaration(DaoParser::VarDeclarationContext *
 
 antlrcpp::Any DaoVisitor::visitVarDeclarationSpecifier(DaoParser::VarDeclarationSpecifierContext *context)
 {
-    std::cout << "11111" << std::endl;
-
     Type *type = nullptr;
     if (context->typeName())
         type = visit(context->typeName()).as<Type *>();
     else
         type = visit(context->varDeclarationSpecifier()).as<Type *>();
 
-    std::cout << "111112" << std::endl;
-
     std::string name = visit(context->identifier()).as<std::string>();
     AllocaInst *var = builder.CreateAlloca(type, nullptr, name);
-    std::cout << "111113" << std::endl;
 
     if (context->assignmentExpression())
     {
         Value *value = visit(context->assignmentExpression()).as<Value *>();
+        if (value->getType()->isFloatTy() & type->isIntegerTy())
+            value = builder.CreateFPToSI(value, type);
         builder.CreateStore(value, var);
     }
-    std::cout << "111114" << std::endl;
 
     var_list[name] = var;
     return type;
@@ -290,7 +286,7 @@ antlrcpp::Any DaoVisitor::visitPrimaryExpression(DaoParser::PrimaryExpressionCon
         if (var_list.find(text) != var_list.end())
         {
             auto var = var_list[text];
-            return (Value *)builder.CreateLoad(var->getType(), var);
+            return (Value *)builder.CreateLoad(var->getType()->getElementType(), var);
         }
         else if (func_list.find(text) != func_list.end())
         {
