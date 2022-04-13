@@ -17,6 +17,7 @@
 
 #include "DaoLexer.h"
 #include "Utils.h"
+#include "Error.h"
 
 using namespace llvm;
 
@@ -80,9 +81,9 @@ antlrcpp::Any DaoVisitor::visitVarDeclarationSpecifier(DaoParser::VarDeclaration
     std::string name = visit(context->identifier()).as<std::string>();
     AllocaInst *var = builder.CreateAlloca(type, nullptr, name);
 
-    if (context->assignmentExpression())
+    if (context->expression())
     {
-        Value *value = visit(context->assignmentExpression()).as<Value *>();
+        Value *value = visit(context->expression()).as<Value *>();
         if (value->getType()->isFloatTy() & type->isIntegerTy())
             value = builder.CreateFPToSI(value, type);
         builder.CreateStore(value, var);
@@ -166,7 +167,7 @@ antlrcpp::Any DaoVisitor::visitRelationalExprression(DaoParser::RelationalExprre
         else if (op == DaoLexer::GreaterEqual)
             tmp = greaterEqual(left, right);
         else
-            throw "语法错误！";
+            throw SyntaxError("语法错误！");
 
         result = result == nullptr ? tmp : builder.CreateAnd(result, tmp);
         left = right;
@@ -190,7 +191,7 @@ antlrcpp::Any DaoVisitor::visitRelationalOperator(DaoParser::RelationalOperatorC
     else if (context->GreaterEqual())
         return (int)DaoLexer::GreaterEqual;
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitShiftExpression(DaoParser::ShiftExpressionContext *context)
@@ -207,7 +208,7 @@ antlrcpp::Any DaoVisitor::visitShiftExpression(DaoParser::ShiftExpressionContext
     else if (op == DaoLexer::RightShift)
         return rightShift(left, right);
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitAdditiveExpression(DaoParser::AdditiveExpressionContext *context)
@@ -224,7 +225,7 @@ antlrcpp::Any DaoVisitor::visitAdditiveExpression(DaoParser::AdditiveExpressionC
     else if (op == DaoLexer::Minus)
         return sub(left, right);
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitMultiplicativeExpression(DaoParser::MultiplicativeExpressionContext *context)
@@ -243,7 +244,7 @@ antlrcpp::Any DaoVisitor::visitMultiplicativeExpression(DaoParser::Multiplicativ
     else if (op == DaoLexer::Mod)
         return mod(left, right);
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitCastExpression(DaoParser::CastExpressionContext *context)
@@ -275,7 +276,7 @@ antlrcpp::Any DaoVisitor::visitPostfixExpression(DaoParser::PostfixExpressionCon
         return (Value *)builder.CreateCall(previous.as<FunctionCallee>(), arguments.as<std::vector<Value *>>());
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitPrimaryExpression(DaoParser::PrimaryExpressionContext *context)
@@ -294,7 +295,7 @@ antlrcpp::Any DaoVisitor::visitPrimaryExpression(DaoParser::PrimaryExpressionCon
             return func;
         }
         else
-            throw "未知的标识符";
+            throw SyntaxError("未知的标识符");
     }
     else if (context->StringLiteral())
     {
@@ -327,7 +328,7 @@ antlrcpp::Any DaoVisitor::visitPrimaryExpression(DaoParser::PrimaryExpressionCon
         return (Value *)builder.getInt32(0);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitConstantExpression(DaoParser::ConstantExpressionContext *context)
@@ -384,7 +385,7 @@ antlrcpp::Any DaoVisitor::visitTypeName(DaoParser::TypeNameContext *context)
     else if (context->Double())
         return (Type *)builder.getDoubleTy();
     else
-        throw "不支持的类型";
+        throw SyntaxError("语法错误！");
 }
 
 antlrcpp::Any DaoVisitor::visitFuncName(DaoParser::FuncNameContext *context)
@@ -416,7 +417,7 @@ llvm::Value *DaoVisitor::add(llvm::Value *left, llvm::Value *right)
         return builder.CreateFAdd(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::sub(llvm::Value *left, llvm::Value *right)
@@ -443,7 +444,7 @@ llvm::Value *DaoVisitor::sub(llvm::Value *left, llvm::Value *right)
         return builder.CreateFSub(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::mul(llvm::Value *left, llvm::Value *right)
@@ -470,7 +471,7 @@ llvm::Value *DaoVisitor::mul(llvm::Value *left, llvm::Value *right)
         return builder.CreateFMul(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::div(llvm::Value *left, llvm::Value *right)
@@ -497,7 +498,7 @@ llvm::Value *DaoVisitor::div(llvm::Value *left, llvm::Value *right)
         return builder.CreateFDiv(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::mod(llvm::Value *left, llvm::Value *right)
@@ -524,7 +525,7 @@ llvm::Value *DaoVisitor::mod(llvm::Value *left, llvm::Value *right)
         return builder.CreateFRem(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::leftShift(llvm::Value *left, llvm::Value *right)
@@ -537,7 +538,7 @@ llvm::Value *DaoVisitor::leftShift(llvm::Value *left, llvm::Value *right)
         return builder.CreateShl(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::rightShift(llvm::Value *left, llvm::Value *right)
@@ -550,7 +551,7 @@ llvm::Value *DaoVisitor::rightShift(llvm::Value *left, llvm::Value *right)
         return builder.CreateLShr(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::equal(llvm::Value *left, llvm::Value *right)
@@ -577,7 +578,7 @@ llvm::Value *DaoVisitor::equal(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpOEQ(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::notEqual(llvm::Value *left, llvm::Value *right)
@@ -604,7 +605,7 @@ llvm::Value *DaoVisitor::notEqual(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpONE(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::less(llvm::Value *left, llvm::Value *right)
@@ -631,7 +632,7 @@ llvm::Value *DaoVisitor::less(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpOLT(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::lessEqual(llvm::Value *left, llvm::Value *right)
@@ -658,7 +659,7 @@ llvm::Value *DaoVisitor::lessEqual(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpOLE(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::greater(llvm::Value *left, llvm::Value *right)
@@ -685,7 +686,7 @@ llvm::Value *DaoVisitor::greater(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpOGT(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }
 
 llvm::Value *DaoVisitor::greaterEqual(llvm::Value *left, llvm::Value *right)
@@ -712,5 +713,5 @@ llvm::Value *DaoVisitor::greaterEqual(llvm::Value *left, llvm::Value *right)
         return builder.CreateFCmpOGE(left, right);
     }
     else
-        throw "语法错误！";
+        throw SyntaxError("语法错误！");
 }

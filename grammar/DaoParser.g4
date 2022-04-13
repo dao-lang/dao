@@ -16,12 +16,12 @@ varDeclaration
     ;
 
 varDeclarationSpecifier
-    : typeName identifier ('=' assignmentExpression)?
-    | varDeclarationSpecifier ',' identifier ('=' assignmentExpression)?
+    : typeName identifier ('=' expression)?
+    | varDeclarationSpecifier ',' identifier ('=' expression)?
     ;
 
 expression
-    : assignmentExpression (',' assignmentExpression)*
+    : assignmentExpression
     ;
 
 assignmentExpression
