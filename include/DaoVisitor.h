@@ -106,4 +106,6 @@ private:
     llvm::Value *greater(llvm::Value *left, llvm::Value *right);
 
     llvm::Value *greaterEqual(llvm::Value *left, llvm::Value *right);
+
+    llvm::Value *cast(llvm::Value *value, llvm::Type *type);
 };

@@ -249,7 +249,12 @@ antlrcpp::Any DaoVisitor::visitMultiplicativeExpression(DaoParser::Multiplicativ
 
 antlrcpp::Any DaoVisitor::visitCastExpression(DaoParser::CastExpressionContext *context)
 {
-    return DaoParserBaseVisitor::visitCastExpression(context);
+    if (context->unaryExpression())
+        return visit(context->unaryExpression());
+
+    Value *value = visit(context->castExpression()).as<Value *>();
+    Type *type = visit(context->typeName()).as<Type *>();
+    return cast(value, type);
 }
 
 antlrcpp::Any DaoVisitor::visitUnaryExpression(DaoParser::UnaryExpressionContext *context)
@@ -342,12 +347,7 @@ antlrcpp::Any DaoVisitor::visitArgumentExpressionList(DaoParser::ArgumentExpress
     for (auto expr : context->assignmentExpression())
     {
         auto arg = visit(expr);
-        if (arg.is<Constant *>())
-            args.push_back(arg.as<Constant *>());
-        else if (arg.is<ConstantInt *>())
-            args.push_back(arg.as<ConstantInt *>());
-        else
-            args.push_back(arg.as<Value *>());
+        args.push_back(arg.as<Value *>());
     }
     return args;
 }
@@ -714,4 +714,9 @@ llvm::Value *DaoVisitor::greaterEqual(llvm::Value *left, llvm::Value *right)
     }
     else
         throw SyntaxError("语法错误！");
+}
+
+llvm::Value *DaoVisitor::cast(llvm::Value *value, llvm::Type *type)
+{
+    return value; // TODO 类型转换
 }
