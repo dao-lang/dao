@@ -86,7 +86,7 @@ namespace dao
         if (context->expression())
         {
             Value value = visit(context->expression()).as<Value>();
-            if (value.type.typeId == TypeId::Float && type.typeId == TypeId::Int32)
+            if (value.type.isFloatingPointTy() && type.isIntegerTy())
             {
                 value = Value(type, builder.CreateFPToSI(value.value, type.type)); // TODO 类型转换
             }
@@ -223,8 +223,8 @@ namespace dao
         if (!context->additiveExpression())
             return visit(context->multiplicativeExpression());
 
-        llvm::Value *left = visit(context->additiveExpression()).as<llvm::Value *>();
-        llvm::Value *right = visit(context->multiplicativeExpression()).as<llvm::Value *>();
+        Value left = visit(context->additiveExpression()).as<Value>();
+        Value right = visit(context->multiplicativeExpression()).as<Value>();
         auto op = context->op->getType();
 
         if (op == DaoLexer::Plus)
@@ -284,11 +284,15 @@ namespace dao
         auto previous = visit(context->postfixExpression());
         if (context->argumentExpressionList())
         {
+            auto func = previous.as<llvm::FunctionCallee>();
+
             auto arguments = visit(context->argumentExpressionList()).as<std::vector<Value>>();
             std::vector<llvm::Value *> args;
             for (auto arg : arguments)
                 args.push_back(arg.value);
-            return Value(Type::Create(builder, TypeId::Int32), builder.CreateCall(previous.as<llvm::FunctionCallee>(), args));
+
+            // func.getFunctionType()->getReturnType()
+            return Value(Type::Create(builder, TypeId::Int32), builder.CreateCall(func, args));
         }
         else
             throw SyntaxError("语法错误！");
@@ -375,6 +379,7 @@ namespace dao
 
     antlrcpp::Any DaoVisitor::visitTypeName(DaoParser::TypeNameContext *context)
     {
+        builder.getInt16Ty();
         if (context->Byte())
             return Type::Create(builder, TypeId::Byte);
         else if (context->Int16())
@@ -400,7 +405,7 @@ namespace dao
         else if (context->Text())
             return Type::Create(builder, TypeId::String);
         else
-            throw SyntaxError("不支持的类型");
+            throw SyntaxError("不支持的类型!");
     }
 
     antlrcpp::Any DaoVisitor::visitFuncName(DaoParser::FuncNameContext *context)
@@ -408,55 +413,73 @@ namespace dao
         return DaoParserBaseVisitor::visitFuncName(context);
     }
 
-    llvm::Value *DaoVisitor::add(llvm::Value *left, llvm::Value *right)
+    Value DaoVisitor::add(Value &left, Value &right)
     {
-        auto left_type = left->getType();
-        auto right_type = right->getType();
+        auto left_type = left.type;
+        auto right_type = right.type;
 
-        if (left_type->isIntegerTy() && right_type->isIntegerTy())
+        if (left_type.isIntegerTy() && right_type.isIntegerTy())
         {
-            return builder.CreateAdd(left, right);
+            return Value(left_type, builder.CreateAdd(left.value, right.value));
         }
-        else if (left_type->isIntegerTy() && right_type->isFloatTy())
+        else if (left_type.isIntegerTy() && right_type.isFloatingPointTy())
         {
-            left = builder.CreateSIToFP(left, right_type);
-            return builder.CreateFAdd(left, right);
+            auto left_value = left.value;
+            if (left_type.isIntegerTy(true))
+                left_value = builder.CreateUIToFP(left_value, right_type.type);
+            else
+                left_value = builder.CreateSIToFP(left_value, right_type.type);
+            return Value(right_type, builder.CreateFAdd(left_value, right.value));
         }
-        else if (left_type->isFloatTy() && right_type->isIntegerTy())
+        else if (left_type.isFloatingPointTy() && right_type.isIntegerTy())
         {
-            right = builder.CreateSIToFP(right, left_type);
-            return builder.CreateFAdd(left, right);
+            auto right_value = right.value;
+            if (left_type.isIntegerTy(true))
+                right_value = builder.CreateUIToFP(right_value, left_type.type);
+            else
+                right_value = builder.CreateSIToFP(right_value, left_type.type);
+
+            return Value(left_type, builder.CreateFAdd(left.value, right_value));
         }
-        else if (left_type->isFloatTy() && right_type->isFloatTy())
+        else if (left_type.isFloatingPointTy() && right_type.isFloatingPointTy())
         {
-            return builder.CreateFAdd(left, right);
+            return Value(left_type, builder.CreateFAdd(left.value, right.value));
         }
         else
             throw SyntaxError("语法错误！");
     }
 
-    llvm::Value *DaoVisitor::sub(llvm::Value *left, llvm::Value *right)
+    Value DaoVisitor::sub(Value &left, Value &right)
     {
-        auto left_type = left->getType();
-        auto right_type = right->getType();
+        auto left_type = left.type;
+        auto right_type = right.type;
 
-        if (left_type->isIntegerTy() && right_type->isIntegerTy())
+        if (left_type.isIntegerTy() && right_type.isIntegerTy())
         {
-            return builder.CreateSub(left, right);
+            return Value(left_type, builder.CreateSub(left.value, right.value));
         }
-        else if (left_type->isIntegerTy() && right_type->isFloatTy())
+        else if (left_type.isIntegerTy() && right_type.isFloatingPointTy())
         {
-            left = builder.CreateSIToFP(left, right_type);
-            return builder.CreateFSub(left, right);
+            auto left_value = left.value;
+            if (left_type.isIntegerTy(true))
+                left_value = builder.CreateUIToFP(left_value, right_type.type);
+            else
+                left_value = builder.CreateSIToFP(left_value, right_type.type);
+            return Value(right_type, builder.CreateFSub(left_value, right.value));
         }
-        else if (left_type->isFloatTy() && right_type->isIntegerTy())
+        else if (left_type.isFloatingPointTy() && right_type.isIntegerTy())
         {
-            right = builder.CreateSIToFP(right, left_type);
-            return builder.CreateFSub(left, right);
+            auto right_value = right.value;
+            if (left_type.isIntegerTy(true))
+                right_value = builder.CreateUIToFP(right_value, left_type.type);
+            else
+                right_value = builder.CreateSIToFP(right_value, left_type.type);
+
+            return Value(left_type, builder.CreateFSub(left.value, right_value));
         }
-        else if (left_type->isFloatTy() && right_type->isFloatTy())
+        else if (left_type.isFloatingPointTy() && right_type.isFloatingPointTy())
         {
-            return builder.CreateFSub(left, right);
+            return Value(left_type, builder.CreateFSub(left.value, right.value));
         }
         else
             throw SyntaxError("语法错误！");

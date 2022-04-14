@@ -85,9 +85,9 @@ namespace dao
         virtual antlrcpp::Any visitFuncName(DaoParser::FuncNameContext *context) override;
 
     private:
-        llvm::Value *add(llvm::Value *left, llvm::Value *right);
+        Value add(Value &left, Value &right);
 
-        llvm::Value *sub(llvm::Value *left, llvm::Value *right);
+        Value sub(Value &left, Value &right);
 
         llvm::Value *mul(llvm::Value *left, llvm::Value *right);
 

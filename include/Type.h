@@ -43,6 +43,12 @@ namespace dao
         Type(TypeId typeId, llvm::Type *type);
 
         static Type Create(llvm::IRBuilder<> &builder, TypeId typeId);
+
+        bool isIntegerTy();
+
+        bool isIntegerTy(bool isUnsigned);
+
+        bool isFloatingPointTy();
     };
 
     /**

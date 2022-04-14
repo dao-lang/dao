@@ -24,7 +24,7 @@ namespace dao
     /**
      * 函数
      */
-    class FunctionValue: public Value{
-
+    class FunctionValue : public Value
+    {
     };
 }

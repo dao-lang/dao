@@ -60,6 +60,24 @@ namespace dao
         }
     }
 
+    bool Type::isIntegerTy()
+    {
+        return type->isIntegerTy();
+    }
+
+    bool Type::isIntegerTy(bool isUnsigned)
+    {
+        if (isUnsigned)
+            return typeId == TypeId::UInt16 || typeId == TypeId::UInt32 || typeId == TypeId::UInt64;
+        else
+            return isIntegerTy();
+    }
+
+    bool Type::isFloatingPointTy()
+    {
+        return type->isFloatingPointTy();
+    }
+
     PointerType::PointerType(Type elementType, llvm::PointerType *type) : Type(TypeId::Pointer, type), elementType(elementType), type(type)
     {
     }
