@@ -22,8 +22,10 @@ namespace dao
         String,
         Char,
         Bool,
+        Null,
         Void,
-        Pointer
+        Pointer,
+        Function
     };
 
     /**
@@ -34,9 +36,13 @@ namespace dao
     public:
         TypeId typeId;
 
-        Type(TypeId typeId);
+        llvm::Type *type;
 
-        virtual llvm::Type *llvm(llvm::IRBuilder<> &builder);
+        Type() = default;
+
+        Type(TypeId typeId, llvm::Type *type);
+
+        static Type Create(llvm::IRBuilder<> &builder, TypeId typeId);
     };
 
     /**
@@ -47,12 +53,12 @@ namespace dao
     public:
         Type elementType;
 
-        unsigned addrSpace;
+        llvm::PointerType *type;
 
-        PointerType(Type elementType);
+        PointerType() = default;
 
-        PointerType(Type elementType, unsigned addrSpace);
+        PointerType(Type elementType, llvm::PointerType *type);
 
-        virtual llvm::Type *llvm(llvm::IRBuilder<> &builder) override;
+        static PointerType Create(llvm::IRBuilder<> &builder, Type elementType, unsigned addrSpace = 0);
     };
 }

@@ -16,6 +16,8 @@
 #include <sstream>
 
 #include "DaoLexer.h"
+#include "Type.h"
+#include "Value.h"
 #include "Utils.h"
 #include "Error.h"
 
@@ -72,24 +74,26 @@ namespace dao
 
     antlrcpp::Any DaoVisitor::visitVarDeclarationSpecifier(DaoParser::VarDeclarationSpecifierContext *context)
     {
-        llvm::Type *type = nullptr;
+        Type type;
         if (context->typeName())
-            type = visit(context->typeName()).as<llvm::Type *>();
+            type = visit(context->typeName()).as<Type>();
         else
-            type = visit(context->varDeclarationSpecifier()).as<llvm::Type *>();
+            type = visit(context->varDeclarationSpecifier()).as<Type>();
 
         std::string name = visit(context->identifier()).as<std::string>();
-        llvm::AllocaInst *var = builder.CreateAlloca(type, nullptr, name);
+        llvm::AllocaInst *var = builder.CreateAlloca(type.type, nullptr, name);
 
         if (context->expression())
         {
-            llvm::Value *value = visit(context->expression()).as<llvm::Value *>();
-            if (value->getType()->isFloatTy() & type->isIntegerTy())
-                value = builder.CreateFPToSI(value, type);
-            builder.CreateStore(value, var);
+            Value value = visit(context->expression()).as<Value>();
+            if (value.type.typeId == TypeId::Float && type.typeId == TypeId::Int32)
+            {
+                value = Value(type, builder.CreateFPToSI(value.value, type.type)); // TODO 类型转换
+            }
+            builder.CreateStore(value.value, var);
         }
 
-        var_list[name] = var;
+        var_list[name] = Value(type, var);
         return type;
     }
 
@@ -143,37 +147,40 @@ namespace dao
         auto ops = context->relationalOperator();
         auto args = context->shiftExpression();
 
-        llvm::Value *left = visit(args[0]).as<llvm::Value *>();
+        Value left = visit(args[0]).as<Value>();
 
-        llvm::Value *result = nullptr;
-        for (size_t i = 1; i < args.size(); i++)
-        {
-            auto op = visit(ops[i - 1]).as<int>();
-            llvm::Value *right = visit(args[i]).as<llvm::Value *>();
+        // TODO
+        // Value result;
+        // for (size_t i = 1; i < args.size(); i++)
+        // {
+        //     auto op = visit(ops[i - 1]).as<int>();
+        //     Value right = visit(args[i]).as<Value>();
 
-            std::cout << "op:" << op << std::endl;
+        //     std::cout << "op:" << op << std::endl;
 
-            llvm::Value *tmp = nullptr;
-            if (op == DaoLexer::Equal)
-                tmp = equal(left, right);
-            else if (op == DaoLexer::NotEqual)
-                tmp = notEqual(left, right);
-            else if (op == DaoLexer::Less)
-                tmp = less(left, right);
-            else if (op == DaoLexer::LessEqual)
-                tmp = lessEqual(left, right);
-            else if (op == DaoLexer::Greater)
-                tmp = greater(left, right);
-            else if (op == DaoLexer::GreaterEqual)
-                tmp = greaterEqual(left, right);
-            else
-                throw SyntaxError("语法错误！");
+        //     Value tmp;
+        //     if (op == DaoLexer::Equal)
+        //         tmp = equal(left, right);
+        //     else if (op == DaoLexer::NotEqual)
+        //         tmp = notEqual(left, right);
+        //     else if (op == DaoLexer::Less)
+        //         tmp = less(left, right);
+        //     else if (op == DaoLexer::LessEqual)
+        //         tmp = lessEqual(left, right);
+        //     else if (op == DaoLexer::Greater)
+        //         tmp = greater(left, right);
+        //     else if (op == DaoLexer::GreaterEqual)
+        //         tmp = greaterEqual(left, right);
+        //     else
+        //         throw SyntaxError("语法错误！");
 
-            result = result == nullptr ? tmp : builder.CreateAnd(result, tmp);
-            left = right;
-        }
+        //     result = result == nullptr ? tmp : builder.CreateAnd(result, tmp);
+        //     left = right;
+        // }
 
-        return result == nullptr ? left : result;
+        // return result == nullptr ? left : result;
+
+        return left;
     }
 
     antlrcpp::Any DaoVisitor::visitRelationalOperator(DaoParser::RelationalOperatorContext *context)
@@ -199,8 +206,8 @@ namespace dao
         if (!context->shiftExpression())
             return visit(context->additiveExpression());
 
-        llvm::Value *left = visit(context->shiftExpression()).as<llvm::Value *>();
-        llvm::Value *right = visit(context->additiveExpression()).as<llvm::Value *>();
+        Value left = visit(context->shiftExpression()).as<Value>();
+        Value right = visit(context->additiveExpression()).as<Value>();
         auto op = context->op->getType();
 
         if (op == DaoLexer::LeftShift)
@@ -277,8 +284,11 @@ namespace dao
         auto previous = visit(context->postfixExpression());
         if (context->argumentExpressionList())
         {
-            auto arguments = visit(context->argumentExpressionList());
-            return (llvm::Value *)builder.CreateCall(previous.as<llvm::FunctionCallee>(), arguments.as<std::vector<llvm::Value *>>());
+            auto arguments = visit(context->argumentExpressionList()).as<std::vector<Value>>();
+            std::vector<llvm::Value *> args;
+            for (auto arg : arguments)
+                args.push_back(arg.value);
+            return Value(Type::Create(builder, TypeId::Int32), builder.CreateCall(previous.as<llvm::FunctionCallee>(), args));
         }
         else
             throw SyntaxError("语法错误！");
@@ -292,11 +302,12 @@ namespace dao
             if (var_list.find(text) != var_list.end())
             {
                 auto var = var_list[text];
-                return (llvm::Value *)builder.CreateLoad(var->getType()->getElementType(), var);
+                return Value(var.type, builder.CreateLoad(var.type.type, var.value));
             }
             else if (func_list.find(text) != func_list.end())
             {
                 llvm::FunctionCallee func = func_list[text];
+                // return Value(Type::Create(builder, TypeId::Function), func);
                 return func;
             }
             else
@@ -306,34 +317,34 @@ namespace dao
         {
             std::string text = context->StringLiteral()->getText();
             text = convert_string(text);
-            return (llvm::Value *)builder.CreateGlobalStringPtr(text);
+            return Value(Type::Create(builder, TypeId::String), builder.CreateGlobalStringPtr(text));
         }
         else if (context->IntegerLiteral())
         {
             std::string text = context->IntegerLiteral()->getText();
             int value = atoi(text.c_str());
-            return (llvm::Value *)builder.getInt32(value);
+            return Value(Type::Create(builder, TypeId::Int32), builder.getInt32(value));
         }
         else if (context->FloatLiteral())
         {
             std::string text = context->FloatLiteral()->getText();
             float value = atof(text.c_str());
-            return (llvm::Value *)llvm::ConstantFP::get(builder.getFloatTy(), value);
+            return Value(Type::Create(builder, TypeId::Float), llvm::ConstantFP::get(builder.getFloatTy(), value));
         }
         else if (context->True())
         {
-            return (llvm::Value *)builder.getTrue();
+            return Value(Type::Create(builder, TypeId::Bool), builder.getTrue());
         }
         else if (context->False())
         {
-            return (llvm::Value *)builder.getFalse();
+            return Value(Type::Create(builder, TypeId::Bool), builder.getFalse());
         }
         else if (context->Null())
         {
-            return (llvm::Value *)builder.getInt32(0);
+            return Value(Type::Create(builder, TypeId::Null), builder.getInt32(0));
         }
         else
-            throw SyntaxError("语法错误！");
+            throw SyntaxError("不支持的Primary表达式");
     }
 
     antlrcpp::Any DaoVisitor::visitConstantExpression(DaoParser::ConstantExpressionContext *context)
@@ -343,11 +354,11 @@ namespace dao
 
     antlrcpp::Any DaoVisitor::visitArgumentExpressionList(DaoParser::ArgumentExpressionListContext *context)
     {
-        std::vector<llvm::Value *> args;
+        std::vector<Value> args;
         for (auto expr : context->assignmentExpression())
         {
-            auto arg = visit(expr);
-            args.push_back(arg.as<llvm::Value *>());
+            Value arg = visit(expr).as<Value>();
+            args.push_back(arg);
         }
         return args;
     }
@@ -365,27 +376,31 @@ namespace dao
     antlrcpp::Any DaoVisitor::visitTypeName(DaoParser::TypeNameContext *context)
     {
         if (context->Byte())
-            return (llvm::Type *)builder.getInt8Ty();
+            return Type::Create(builder, TypeId::Byte);
         else if (context->Int16())
-            return (llvm::Type *)builder.getInt16Ty();
+            return Type::Create(builder, TypeId::Int16);
         else if (context->Int32())
-            return (llvm::Type *)builder.getInt32Ty();
+            return Type::Create(builder, TypeId::Int32);
         else if (context->Int64())
-            return (llvm::Type *)builder.getInt64Ty();
+            return Type::Create(builder, TypeId::Int64);
         else if (context->UInt16())
-            return (llvm::Type *)builder.getInt16Ty();
+            return Type::Create(builder, TypeId::UInt16);
         else if (context->UInt32())
-            return (llvm::Type *)builder.getInt32Ty();
+            return Type::Create(builder, TypeId::UInt32);
         else if (context->UInt64())
-            return (llvm::Type *)builder.getInt64Ty();
+            return Type::Create(builder, TypeId::UInt64);
         else if (context->Half())
-            return (llvm::Type *)builder.getHalfTy();
+            return Type::Create(builder, TypeId::Half);
         else if (context->Float())
-            return (llvm::Type *)builder.getFloatTy();
+            return Type::Create(builder, TypeId::Float);
         else if (context->Double())
-            return (llvm::Type *)builder.getDoubleTy();
+            return Type::Create(builder, TypeId::Double);
+        else if (context->Bool())
+            return Type::Create(builder, TypeId::Bool);
+        else if (context->Text())
+            return Type::Create(builder, TypeId::String);
         else
-            throw SyntaxError("语法错误！");
+            throw SyntaxError("不支持的类型");
     }
 
     antlrcpp::Any DaoVisitor::visitFuncName(DaoParser::FuncNameContext *context)
@@ -528,27 +543,27 @@ namespace dao
             throw SyntaxError("语法错误！");
     }
 
-    llvm::Value *DaoVisitor::leftShift(llvm::Value *left, llvm::Value *right)
+    Value DaoVisitor::leftShift(const Value &left, const Value &right)
     {
-        auto left_type = left->getType();
-        auto right_type = right->getType();
+        auto left_type = left.type.type;
+        auto right_type = right.type.type;
 
         if (left_type->isIntegerTy() && right_type->isIntegerTy())
         {
-            return builder.CreateShl(left, right);
+            return Value(left.type, builder.CreateShl(left.value, right.value));
         }
         else
             throw SyntaxError("语法错误！");
     }
 
-    llvm::Value *DaoVisitor::rightShift(llvm::Value *left, llvm::Value *right)
+    Value DaoVisitor::rightShift(const Value &left, const Value &right)
     {
-        auto left_type = left->getType();
-        auto right_type = right->getType();
+        auto left_type = left.type.type;
+        auto right_type = right.type.type;
 
         if (left_type->isIntegerTy() && right_type->isIntegerTy())
         {
-            return builder.CreateLShr(left, right);
+            return Value(left.type, builder.CreateLShr(left.value, right.value));
         }
         else
             throw SyntaxError("语法错误！");

@@ -2,7 +2,5 @@
 
 namespace dao
 {
-    Value ::Value(Type type, llvm::Value *value) : type(type), value(value)
-    {
-    }
+    Value::Value(Type type, llvm::Value *value) : type(type), value(value){};
 }

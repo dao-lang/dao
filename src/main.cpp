@@ -41,7 +41,7 @@ void eval(const std::string source_file)
 
 int main()
 {
-  std::string file_name = "demo/demo03.dao";
+  std::string file_name = "demo/demo04.dao";
   // print_tokens(file_name);
   eval(file_name);
 

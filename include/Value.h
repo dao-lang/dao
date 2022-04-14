@@ -16,6 +16,15 @@ namespace dao
 
         llvm::Value *value;
 
+        Value() = default;
+
         Value(Type type, llvm::Value *value);
+    };
+
+    /**
+     * 函数
+     */
+    class FunctionValue: public Value{
+
     };
 }

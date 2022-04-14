@@ -4,65 +4,68 @@
 
 namespace dao
 {
-    Type::Type(TypeId typeId) : typeId(typeId) {}
+    Type::Type(TypeId typeId, llvm::Type *type) : typeId(typeId), type(type) {}
 
-    llvm::Type *Type::llvm(llvm::IRBuilder<> &builder)
+    Type Type::Create(llvm::IRBuilder<> &builder, TypeId typeId)
     {
         switch (typeId)
         {
         case TypeId::Byte:
-            return builder.getInt8Ty();
+            return Type(typeId, builder.getInt8Ty());
 
         case TypeId::Int16:
-            return builder.getInt16Ty();
+            return Type(typeId, builder.getInt16Ty());
 
         case TypeId::Int32:
-            return builder.getInt32Ty();
+            return Type(typeId, builder.getInt32Ty());
 
         case TypeId::Int64:
-            return builder.getInt64Ty();
+            return Type(typeId, builder.getInt64Ty());
 
         case TypeId::UInt16:
-            return builder.getInt16Ty();
+            return Type(typeId, builder.getInt16Ty());
 
         case TypeId::UInt32:
-            return builder.getInt32Ty();
+            return Type(typeId, builder.getInt32Ty());
 
         case TypeId::UInt64:
-            return builder.getInt64Ty();
+            return Type(typeId, builder.getInt64Ty());
 
         case TypeId::Half:
-            return builder.getHalfTy();
+            return Type(typeId, builder.getHalfTy());
 
         case TypeId::Float:
-            return builder.getFloatTy();
+            return Type(typeId, builder.getFloatTy());
 
         case TypeId::Double:
-            return builder.getDoubleTy();
+            return Type(typeId, builder.getDoubleTy());
 
         case TypeId::Bool:
-            return builder.getInt1Ty();
+            return Type(typeId, builder.getInt1Ty());
+
+        case TypeId::Null:
+            return Type(typeId, builder.getInt32Ty());
 
         case TypeId::Void:
-            return builder.getVoidTy();
+            return Type(typeId, builder.getVoidTy());
 
         case TypeId::String:
-            return builder.getInt8PtrTy();
+            return Type(typeId, builder.getInt8PtrTy());
 
         case TypeId::Char:
-            return builder.getInt8Ty();
+            return Type(typeId, builder.getInt8Ty());
 
         default:
             throw SyntaxError("不支持的类型");
         }
     }
 
-    PointerType::PointerType(Type elementType) : PointerType(elementType, 0) {}
-
-    PointerType::PointerType(Type elementType, unsigned addrSpace) : elementType(elementType), addrSpace(addrSpace), Type(TypeId::Pointer) {}
-
-    llvm::Type *PointerType::llvm(llvm::IRBuilder<> &builder)
+    PointerType::PointerType(Type elementType, llvm::PointerType *type) : Type(TypeId::Pointer, type), elementType(elementType), type(type)
     {
-        return llvm::PointerType::get(elementType.llvm(builder), addrSpace);
+    }
+
+    PointerType PointerType::Create(llvm::IRBuilder<> &builder, Type elementType, unsigned addrSpace)
+    {
+        return PointerType(elementType, llvm::PointerType::get(elementType.type, addrSpace));
     }
 }

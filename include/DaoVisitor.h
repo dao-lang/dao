@@ -5,6 +5,8 @@
 #include <llvm/IR/LLVMContext.h>
 
 #include "DaoParserBaseVisitor.h"
+#include "Value.h"
+#include "Type.h"
 
 namespace dao
 {
@@ -19,7 +21,7 @@ namespace dao
         llvm::BasicBlock *block;
 
         std::map<std::string, llvm::FunctionCallee> func_list;
-        std::map<std::string, llvm::AllocaInst *> var_list;
+        std::map<std::string, Value> var_list;
 
     public:
         DaoVisitor();
@@ -93,9 +95,9 @@ namespace dao
 
         llvm::Value *mod(llvm::Value *left, llvm::Value *right);
 
-        llvm::Value *leftShift(llvm::Value *left, llvm::Value *right);
+        Value leftShift(const Value &left, const Value &right);
 
-        llvm::Value *rightShift(llvm::Value *left, llvm::Value *right);
+        Value rightShift(const Value &left, const Value &right);
 
         llvm::Value *equal(llvm::Value *left, llvm::Value *right);
 
