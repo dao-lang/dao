@@ -3,45 +3,48 @@
 #include <sstream>
 #include <string>
 
-std::string convert_string(const std::string src)
+namespace dao
 {
-    std::stringstream ss;
-
-    for (size_t i = 1; i < src.length() - 1;)
+    std::string convert_string(const std::string src)
     {
-        auto c = src[i];
-        if (c == '\\')
+        std::stringstream ss;
+
+        for (size_t i = 1; i < src.length() - 1;)
         {
-            switch (src[i + 1])
+            auto c = src[i];
+            if (c == '\\')
             {
-            case 'n':
-                ss << '\n';
-                break;
+                switch (src[i + 1])
+                {
+                case 'n':
+                    ss << '\n';
+                    break;
 
-            case 't':
-                ss << '\t';
-                break;
+                case 't':
+                    ss << '\t';
+                    break;
 
-            case 'r':
-                ss << '\r';
-                break;
+                case 'r':
+                    ss << '\r';
+                    break;
 
-            case '0':
-                ss << '\0';
-                break;
+                case '0':
+                    ss << '\0';
+                    break;
 
-            default:
-                throw "不支持的转义字符";
-                break;
+                default:
+                    throw "不支持的转义字符";
+                    break;
+                }
+                i += 2;
             }
-            i += 2;
+            else
+            {
+                ss << c;
+                i++;
+            }
         }
-        else
-        {
-            ss << c;
-            i++;
-        }
-    }
 
-    return ss.str();
+        return ss.str();
+    }
 }

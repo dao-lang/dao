@@ -3,15 +3,18 @@
 #include <string>
 #include <exception>
 
-class SyntaxError : public std::exception
+namespace dao
 {
-public:
-    SyntaxError();
-    
-    SyntaxError(const std::string &msg);
+    class SyntaxError : public std::exception
+    {
+    public:
+        SyntaxError();
 
-    virtual const char *what() const noexcept override;
+        SyntaxError(const std::string &msg);
 
-private:
-    std::string msg;
-};
+        virtual const char *what() const noexcept override;
+
+    private:
+        std::string msg;
+    };
+}
