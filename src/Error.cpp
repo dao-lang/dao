@@ -8,7 +8,7 @@ SyntaxError::SyntaxError(const std::string &msg) : msg(msg)
 {
 }
 
-const char *SyntaxError::what() const _NOEXCEPT
+const char *SyntaxError::what() const noexcept
 {
     return msg.c_str();
 }

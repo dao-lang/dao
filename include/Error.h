@@ -10,7 +10,7 @@ public:
     
     SyntaxError(const std::string &msg);
 
-    virtual const char *what() const _NOEXCEPT override;
+    virtual const char *what() const noexcept override;
 
 private:
     std::string msg;
