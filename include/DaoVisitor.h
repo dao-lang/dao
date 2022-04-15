@@ -1,32 +1,28 @@
 #pragma once
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-
 #include "DaoParserBaseVisitor.h"
-#include "Value.h"
-#include "Type.h"
+#include "AST.h"
+
 
 namespace dao
 {
     class DaoVisitor : public DaoParserBaseVisitor
     {
     private:
-        llvm::LLVMContext context;
-        llvm::IRBuilder<> builder;
-        llvm::Module module;
+        std::shared_ptr<Module> module;
 
-        llvm::Function *main_func;
-        llvm::BasicBlock *block;
+        std::map<std::string, std::shared_ptr<FunctionDeclaration>> func_list;
 
-        std::map<std::string, llvm::FunctionCallee> func_list;
-        std::map<std::string, Value> var_list;
+        std::map<std::string, std::shared_ptr<VariableDeclaration>> var_list;
+
+        std::shared_ptr<Function> function;
+
+        StatementBlock *block;
 
     public:
         DaoVisitor();
 
-        virtual antlrcpp::Any visitFile_input(DaoParser::File_inputContext *context) override;
+        virtual antlrcpp::Any visitFileInput(DaoParser::FileInputContext *context) override;
 
         virtual antlrcpp::Any visitStatement(DaoParser::StatementContext *context) override;
 
@@ -83,34 +79,5 @@ namespace dao
         virtual antlrcpp::Any visitTypeName(DaoParser::TypeNameContext *context) override;
 
         virtual antlrcpp::Any visitFuncName(DaoParser::FuncNameContext *context) override;
-
-    private:
-        Value add(Value &left, Value &right);
-
-        Value sub(Value &left, Value &right);
-
-        llvm::Value *mul(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *div(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *mod(llvm::Value *left, llvm::Value *right);
-
-        Value leftShift(const Value &left, const Value &right);
-
-        Value rightShift(const Value &left, const Value &right);
-
-        llvm::Value *equal(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *notEqual(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *less(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *lessEqual(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *greater(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *greaterEqual(llvm::Value *left, llvm::Value *right);
-
-        llvm::Value *cast(llvm::Value *value, llvm::Type *type);
     };
 }

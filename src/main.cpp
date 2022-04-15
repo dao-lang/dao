@@ -33,7 +33,7 @@ void eval(const std::string source_file)
   antlr4::CommonTokenStream tokens(&lexer);
 
   dao::DaoParser parser(&tokens);
-  auto tree = parser.file_input();
+  auto tree = parser.fileInput();
 
   DaoVisitor visitor;
   visitor.visit(tree);
@@ -41,7 +41,7 @@ void eval(const std::string source_file)
 
 int main()
 {
-  std::string file_name = "demo/demo04.dao";
+  std::string file_name = "/home/killf/dao/dao-lang/demo/demo04.dao";
   // print_tokens(file_name);
   eval(file_name);
 

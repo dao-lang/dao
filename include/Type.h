@@ -1,10 +1,11 @@
 #pragma once
 
-#include <llvm/IR/IRBuilder.h>
+#include <string>
+#include <vector>
 
 namespace dao
 {
-    /***
+    /**
      * 类型Id
      */
     enum TypeId
@@ -25,7 +26,8 @@ namespace dao
         Null,
         Void,
         Pointer,
-        Function
+        Func,
+        Dynamic
     };
 
     /**
@@ -36,19 +38,14 @@ namespace dao
     public:
         TypeId typeId;
 
-        llvm::Type *type;
+        explicit Type(TypeId typeId) : typeId(typeId) {}
 
-        Type() = default;
-
-        Type(TypeId typeId, llvm::Type *type);
-
-        static Type Create(llvm::IRBuilder<> &builder, TypeId typeId);
-
-        bool isIntegerTy();
-
-        bool isIntegerTy(bool isUnsigned);
-
-        bool isFloatingPointTy();
+        template <TypeId TYPE_ID>
+        static Type *get()
+        {
+            static Type type(TYPE_ID);
+            return &type;
+        }
     };
 
     /**
@@ -57,14 +54,43 @@ namespace dao
     class PointerType : public Type
     {
     public:
-        Type elementType;
+        Type *elementType;
 
-        llvm::PointerType *type;
+        PointerType(Type *elementType) : Type(TypeId::Pointer), elementType(elementType) {}
 
-        PointerType() = default;
-
-        PointerType(Type elementType, llvm::PointerType *type);
-
-        static PointerType Create(llvm::IRBuilder<> &builder, Type elementType, unsigned addrSpace = 0);
+        template <TypeId TYPE_ID>
+        static PointerType *get()
+        {
+            static PointerType type(Type::get<TYPE_ID>());
+            return &type;
+        }
     };
+
+    /**
+     * 函数类型
+     */
+    class FunctionType : public Type
+    {
+    public:
+        std::vector<Type *> parameterTypes;
+
+        Type *outputType;
+
+        bool isVariable;
+
+        explicit FunctionType(const std::initializer_list<Type *> &parameterTypes, Type *outputType, bool isVariable) 
+        : Type(TypeId::Func), parameterTypes(parameterTypes), outputType(outputType), isVariable(isVariable)
+        {
+        }
+    };
+
+    /**
+     * 类型推断
+     */
+    Type *inferType(int op, Type *left, Type *right);
+
+    /**
+     * 类型推断
+     */
+    Type *inferType(int op, Type *value);
 }
