@@ -9,10 +9,9 @@
 
 using namespace dao;
 
-void print_tokens(const std::string source_file)
+void print_tokens(const std::string &source_file)
 {
-  antlr4::ANTLRFileStream fileStream;
-  fileStream.loadFromFile(source_file);
+  antlr4::ANTLRFileStream fileStream(source_file);
 
   DaoLexer lexer(&fileStream);
   antlr4::CommonTokenStream tokens(&lexer);
@@ -24,10 +23,9 @@ void print_tokens(const std::string source_file)
   }
 }
 
-void eval(const std::string source_file)
+void eval(const std::string &source_file)
 {
-  antlr4::ANTLRFileStream fileStream;
-  fileStream.loadFromFile(source_file);
+  antlr4::ANTLRFileStream fileStream(source_file);
 
   DaoLexer lexer(&fileStream);
   antlr4::CommonTokenStream tokens(&lexer);

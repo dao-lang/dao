@@ -36,3 +36,4 @@
 
 build/
 generated/
+cmake-build-debug/
