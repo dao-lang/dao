@@ -2,7 +2,7 @@ parser grammar DaoParser;
 
 options { tokenVocab=DaoLexer; language=Cpp; }
 
-tokens { INDENT, DEDENT }
+tokens { Begin, End, INDENT, DEDENT }
 
 file_input
     : statement* EOF

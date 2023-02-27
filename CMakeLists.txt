@@ -24,5 +24,5 @@ include_directories(generated include)
 file(GLOB_RECURSE GENERATED_FILE generated/*.cpp)
 file(GLOB_RECURSE SOURCE_FILE src/*.cpp)
 
-add_executable(dao ${GENERATED_FILE} ${SOURCE_FILE})
+add_executable(dao ${GENERATED_FILE} ${SOURCE_FILE} include/DaoBaseLexer.hpp)
 target_link_libraries(dao ${ANTLR4_LIBRARY} LLVM)
