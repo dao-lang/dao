@@ -4,5 +4,5 @@
 
 namespace dao
 {
-    std::string convert_string(const std::string src);
+    std::string convert_string(const std::string& src);
 }

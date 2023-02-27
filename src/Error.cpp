@@ -1,12 +1,14 @@
 #include "Error.hpp"
 
+#include <utility>
+
 namespace dao
 {
     SyntaxError::SyntaxError() : SyntaxError("语法错误")
     {
     }
 
-    SyntaxError::SyntaxError(const std::string &msg) : msg(msg)
+    SyntaxError::SyntaxError(std::string msg) : msg(std::move(msg))
     {
     }
 

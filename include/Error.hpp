@@ -10,7 +10,7 @@ namespace dao
     public:
         SyntaxError();
 
-        SyntaxError(const std::string &msg);
+        explicit SyntaxError(std::string msg);
 
         virtual const char *what() const noexcept override;
 
