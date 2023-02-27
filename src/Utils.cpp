@@ -40,4 +40,20 @@ namespace dao {
 
         return ss.str();
     }
+
+    int get_indentation_count(const std::string &spaces) {
+        int count = 0;
+        for (char ch : spaces) {
+            switch (ch) {
+                case '\t':
+                    count += 8 - (count % 8);
+                    break;
+                default:
+                    // A normal space char.
+                    count++;
+            }
+        }
+
+        return count;
+    }
 }
