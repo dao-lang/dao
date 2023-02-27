@@ -5,7 +5,7 @@
 
 #include "DaoLexer.h"
 #include "DaoParser.h"
-#include "DaoVisitor.h"
+#include "DaoVisitor.hpp"
 
 using namespace dao;
 

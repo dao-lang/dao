@@ -1,6 +1,6 @@
-#include "Type.h"
+#include "Type.hpp"
 
-#include "Error.h"
+#include "Error.hpp"
 
 namespace dao
 {

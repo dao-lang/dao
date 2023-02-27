@@ -5,8 +5,8 @@
 #include <llvm/IR/LLVMContext.h>
 
 #include "DaoParserBaseVisitor.h"
-#include "Value.h"
-#include "Type.h"
+#include "Value.hpp"
+#include "Type.hpp"
 
 namespace dao
 {

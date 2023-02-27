@@ -1,4 +1,4 @@
-#include "DaoVisitor.h"
+#include "DaoVisitor.hpp"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -16,10 +16,10 @@
 #include <sstream>
 
 #include "DaoLexer.h"
-#include "Type.h"
-#include "Value.h"
-#include "Utils.h"
-#include "Error.h"
+#include "Type.hpp"
+#include "Value.hpp"
+#include "Utils.hpp"
+#include "Error.hpp"
 
 namespace dao
 {

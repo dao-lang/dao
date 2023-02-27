@@ -2,7 +2,7 @@
 
 #include <llvm/IR/IRBuilder.h>
 
-#include "Type.h"
+#include "Type.hpp"
 
 namespace dao
 {
