@@ -8,26 +8,27 @@
 #include "DaoVisitor.hpp"
 
 using namespace dao;
+using namespace antlr4;
 
 void print_tokens(const std::string &source_file) {
-    antlr4::ANTLRFileStream fileStream(source_file);
+    ANTLRFileStream fileStream(source_file);
 
     DaoLexer lexer(&fileStream);
-    antlr4::CommonTokenStream tokens(&lexer);
+    CommonTokenStream tokens(&lexer);
 
-    while (!lexer.hitEOF) {
-        auto token = lexer.nextToken();
-        std::cout << token->getType() << " " << token->getText() << std::endl;
+    tokens.fill();
+    for (Token *token: tokens.getTokens()) {
+        std::cout << (int) token->getType() << " " << token->getText() << std::endl;
     }
 }
 
 void eval(const std::string &source_file) {
-    antlr4::ANTLRFileStream fileStream(source_file);
+    ANTLRFileStream fileStream(source_file);
 
     DaoLexer lexer(&fileStream);
-    antlr4::CommonTokenStream tokens(&lexer);
+    CommonTokenStream tokens(&lexer);
 
-    dao::DaoParser parser(&tokens);
+    DaoParser parser(&tokens);
     auto tree = parser.file_input();
 
     DaoVisitor visitor;
@@ -35,7 +36,7 @@ void eval(const std::string &source_file) {
 }
 
 int main() {
-    std::string file_name = "demo/demo02.dao";
+    std::string file_name = "demo/demo03.dao";
     print_tokens(file_name);
     //eval(file_name);
 

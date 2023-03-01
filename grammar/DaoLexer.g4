@@ -1,12 +1,86 @@
 lexer grammar DaoLexer;
 
-options { superClass=DaoBaseLexer; language=Cpp; }
+options { language=Cpp; }
 
+tokens { Begin, End }
 
-@lexer::header {
-#include "DaoBaseLexer.hpp"
-#include "DaoParser.h"
-#include "Utils.hpp"
+@lexer::members {
+private:
+    std::vector<std::unique_ptr<antlr4::Token>> m_tokens;
+    std::stack<int> m_indents;
+    int m_opened = 0;
+    std::unique_ptr<antlr4::Token> m_pLastToken = nullptr;
+
+public:
+    virtual void emit(std::unique_ptr<antlr4::Token> newToken) override {
+        m_tokens.push_back(cloneToken(newToken));
+        setToken(std::move(newToken));
+    }
+
+    std::unique_ptr<antlr4::Token> nextToken() override {
+        // Check if the end-of-file is ahead and there are still some DEDENTS expected.
+        if (_input->LA(1) == EOF && !m_indents.empty()) {
+            // Remove any trailing EOF tokens from our buffer.
+            for (int i = m_tokens.size() - 1; i >= 0; i--) {
+                if (m_tokens[i]->getType() == EOF) {
+                    m_tokens.erase(m_tokens.begin() + i);
+                }
+            }
+
+            // First emit an extra line break that serves as the end of the statement.
+            emit(commonToken(Newline, "", "<Newline>"));
+
+            // Now emit as much DEDENT tokens as needed.
+            while (!m_indents.empty()) {
+                emit(createDedent());
+                m_indents.pop();
+            }
+
+            // Put the EOF back on the token stream.
+            emit(commonToken(EOF, "", "<EOF>"));
+        }
+
+        std::unique_ptr<antlr4::Token> next = Lexer::nextToken();
+
+        if (next->getChannel() == antlr4::Token::DEFAULT_CHANNEL) {
+            // Keep track of the last token on the default channel.
+            m_pLastToken = cloneToken(next);
+        }
+
+        if (!m_tokens.empty()) {
+            next = std::move(*m_tokens.begin());
+            m_tokens.erase(m_tokens.begin());
+        }
+
+        return next;
+    }
+
+private:
+    std::unique_ptr<antlr4::Token> createDedent() {
+        return commonToken(End, "", "<End>");
+    }
+
+    std::unique_ptr<antlr4::CommonToken> commonToken(size_t type, const std::string &text, const std::string &display_text) {
+        int stop = getCharIndex() - 1;
+        int start = text.empty() ? stop : stop - text.size() + 1;
+        return _factory->create({this, _input}, type, display_text, DEFAULT_TOKEN_CHANNEL, start, stop, m_pLastToken ? m_pLastToken->getLine() : 0, m_pLastToken ? m_pLastToken->getCharPositionInLine() : 0);
+    }
+
+    std::unique_ptr<antlr4::CommonToken> cloneToken(const std::unique_ptr<antlr4::Token> &source) {
+        return _factory->create({this, _input}, source->getType(), source->getText(), source->getChannel(), source->getStartIndex(), source->getStopIndex(), source->getLine(), source->getCharPositionInLine());
+    }
+
+    static int getIndentationCount(const std::string &spaces) {
+        int count = 0;
+        for (char ch: spaces) {
+            if (ch == '\t') count += 8 - (count % 8); else count++;
+        }
+        return count;
+    }
+
+    bool atStartOfInput() {
+        return getCharPositionInLine() == 0 && getLine() == 1;
+    }
 }
 
 Import:                          '导入';
@@ -125,8 +199,9 @@ Newline:                         ({atStartOfInput()}?Spaces | ('\r'?'\n'|'\r'|'\
            skip();
          }
          else {
-           emit(commonToken(Newline, newLine));
-           int indent = get_indentation_count(spaces);
+            if(m_pLastToken && m_pLastToken->getType()!=End)
+                emit(commonToken(Newline, newLine, "<Newline>"));
+           int indent = getIndentationCount(spaces);
            int previous = m_indents.empty() ? 0 : m_indents.top();
            if (indent == previous) {
              // skip indents of the same size as the present indent-size
@@ -134,7 +209,7 @@ Newline:                         ({atStartOfInput()}?Spaces | ('\r'?'\n'|'\r'|'\
            }
            else if (indent > previous) {
              m_indents.push(indent);
-             emit(commonToken(DaoParser::INDENT, spaces));
+             emit(commonToken(Begin, spaces, "<Begin>"));
            }
            else {
              // Possibly emit more than 1 DEDENT token.
